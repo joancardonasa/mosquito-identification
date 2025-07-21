@@ -1,0 +1,28 @@
+[project]
+name = "mosquito-identification"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "joancardonasa",email = "joancardonasa@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi (>=0.116.1,<0.117.0)",
+    "pydantic (==2.11.7)",
+    "sqlalchemy (==2.0.30)",
+    "alembic (==1.13.1)",
+    "numpy (==1.26.4)",
+    "python-multipart (==0.0.9)",
+    "uvicorn (==0.29.0)",
+    "redis (==5.0.4)",
+    "celery (==5.5.3)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+package-mode = false
