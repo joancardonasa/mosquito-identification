@@ -9,6 +9,7 @@ services:
       - DEBUG=1
     volumes:
       - ./app:/app
+      - ./app/data/photos:/app/data/photos
     ports:
       - 8000:8000
     restart: on-failure

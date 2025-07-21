@@ -16,7 +16,9 @@ dependencies = [
     "python-multipart (==0.0.9)",
     "uvicorn (==0.29.0)",
     "redis (==5.0.4)",
-    "celery (==5.5.3)"
+    "celery (==5.5.3)",
+    "pytest (>=8.4.1,<9.0.0)",
+    "httpx (>=0.28.1,<0.29.0)"
 ]
 
 
@@ -26,3 +28,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 package-mode = false
+
+[tool.pytest.ini_options]
+pythonpath = ["app"]
