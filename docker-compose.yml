@@ -19,5 +19,21 @@ services:
     depends_on:
       - redis
 
+  celery_worker:
+    build: .
+    working_dir: /app
+    command: celery -A app.tasks worker --loglevel=info
+    environment:
+      - PYTHONPATH=/app
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./src:/app
+      - ./alembic.ini:/app/alembic.ini
+      - ./alembic:/app/alembic
+      - ./src/app/data/photos:/app/app/data/photos
+      - ./data/db:/data/db
+    depends_on:
+      - redis
+
   redis:
     image: redis:alpine

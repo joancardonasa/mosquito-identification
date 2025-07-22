@@ -1,13 +1,16 @@
 import logging
+import os
+from typing import List
 from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Depends, Form
 from fastapi.staticfiles import StaticFiles
-import os
 from datetime import datetime
-from app.utils import store_photo, PhotoSaveError
-
 from sqlalchemy.orm import Session
+
+from app.utils import store_photo, PhotoSaveError
 from app.database import SessionLocal, get_db
 from app.models import Observation
+from app.schemas import ObservationResponse
+from app.tasks import classify_observation_ai
 
 logging.basicConfig(
     level=logging.INFO,
@@ -76,11 +79,17 @@ async def create_observation(
     db.commit()
     db.refresh(observation)
 
-    total = db.query(Observation).count()
-    print(f"Total observations in DB: {total}")
+
+    classify_observation_ai.delay(observation.id)
+    # total = db.query(Observation).count()
+    # print(f"Total observations in DB: {total}")
 
     return {
         "message": "Observation saved",
         "photo_location": file_path
     }
 
+@api.get("/observations/", response_model=List[ObservationResponse])
+def list_observations(db: Session = Depends(get_db)):
+    observations = db.query(Observation).all()
+    return observations
