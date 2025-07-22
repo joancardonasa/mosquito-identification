@@ -76,7 +76,8 @@ class TestObservationsValidation:
 
         api.dependency_overrides[get_db] = lambda: mock_db
 
-        with patch("app.main.store_photo", return_value="photro/path.jpg"):
+        with patch("app.main.store_photo", return_value="photo/path.jpg"), \
+            patch("app.main.classify_observation_ai.delay") as mock_delay:
             response = client.post("/observations/", data=data, files=files)
 
         assert response.status_code == 200
