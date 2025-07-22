@@ -1,7 +1,7 @@
 import logging
 import os
 from typing import List, Optional
-from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Depends, Form, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Depends, Form, status
 from fastapi.staticfiles import StaticFiles
 from datetime import datetime
 from sqlalchemy.orm import Session
@@ -167,3 +167,24 @@ def get_observation(observation_id: int, db: Session = Depends(get_db)):
         ai_classification=result.ai_classification,
         expert_classification=result.expert_classification,
     )
+
+@api.delete("/observations/{observation_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_observation(observation_id: int, db: Session = Depends(get_db)):
+    obs = db.get(Observation, observation_id)
+    if not obs:
+        raise HTTPException(status_code=404, detail="Observation not found")
+
+    id_task = db.query(IdentificationTask).filter_by(observation_id=observation_id).first()
+    if id_task:
+        db.delete(id_task)
+
+    if obs.photo_path and os.path.isfile(obs.photo_path):
+        try:
+            os.remove(obs.photo_path)
+        except Exception as e:
+            logger.error(f"Could not delete image file in {obs.photo_path}")
+            pass
+
+    db.delete(obs)
+    db.commit()
+    logger.info(f"Deleted observation {observation_id} and the associated image file in {obs.photo_path}")
