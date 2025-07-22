@@ -33,6 +33,6 @@ Mosquito observation and identification system
 
     `export PATH="$HOME/.local/bin:$PATH"`
 
-    `poetry install -no-root`
+    `poetry install --no-root`
 
     `PYTHONPATH=src pytest`
