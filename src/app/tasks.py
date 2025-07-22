@@ -2,7 +2,7 @@ import logging
 from celery import Celery
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
-from app.models import Observation
+from app.models import Observation, IdentificationTask
 from app.ai_classifier import AIClassifier
 
 logger = logging.getLogger(__name__)
@@ -24,8 +24,21 @@ def classify_observation_ai(observation_id: int):
             if not classification:
                 logger.info(f"Observation {observation_id} could not be classified, skipping update")
                 return
-            obs.ai_classification = classification
+
+            id_task = db.query(IdentificationTask).filter_by(observation_id=observation_id).first()
+            
+            if id_task is None:
+                id_task = IdentificationTask(
+                    observation_id=observation_id,
+                    ai_classification=classification
+                )
+                db.add(id_task)
+            else:
+                id_task.ai_classification = classification
+            
             db.commit()
+            db.refresh(id_task)
+
             logger.info(f"Observation {observation_id} classified as {classification}")
         else:
             logger.warning(f"Observation {observation_id} not found")

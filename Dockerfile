@@ -20,5 +20,5 @@ RUN poetry config virtualenvs.create false && \
     poetry install --no-interaction --no-ansi --no-root
 
 COPY ./src /app
-COPY alembic.ini /app/alembic.ini
-COPY alembic /app/alembic
+COPY alembic.ini /alembic.ini
+COPY alembic /alembic
