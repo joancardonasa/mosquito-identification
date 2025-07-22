@@ -12,6 +12,7 @@ from app.database import SessionLocal, get_db
 from app.models import Observation, IdentificationTask
 from app.schemas import ObservationResponse
 from app.tasks import classify_observation_ai
+from app.ai_classifier import AIClassifier
 
 logging.basicConfig(
     level=logging.INFO,
@@ -188,3 +189,80 @@ def delete_observation(observation_id: int, db: Session = Depends(get_db)):
     db.delete(obs)
     db.commit()
     logger.info(f"Deleted observation {observation_id} and the associated image file in {obs.photo_path}")
+
+# This endpoint is to let Experts visualize AI classifications in a nice view,
+# and update them nicely with a POST to /expert_classifications/
+# if they disagree
+@api.get("/ai_classifications/", response_model=List[ObservationResponse])
+def list_ai_classifications(db: Session = Depends(get_db)):
+    results = (
+        db.query(
+            Observation.id,
+            Observation.latitude,
+            Observation.longitude,
+            Observation.timestamp,
+            Observation.photo_path,
+            IdentificationTask.annotations,
+            IdentificationTask.ai_classification,
+            IdentificationTask.expert_classification,
+        )
+        .join(IdentificationTask, IdentificationTask.observation_id == Observation.id)
+        .filter(
+            IdentificationTask.expert_classification == None,
+            IdentificationTask.ai_classification != None
+        )
+        .all()
+    )
+
+    return [
+        ObservationResponse(
+            id=r.id,
+            latitude=r.latitude,
+            longitude=r.longitude,
+            timestamp=r.timestamp,
+            photo_path=r.photo_path,
+            annotations=r.annotations,
+            ai_classification=r.ai_classification,
+            expert_classification=r.expert_classification,
+        )
+        for r in results
+    ]
+
+# In the frontend and backend we would need to ensure that only specific species could be inputted
+# using an Enum to check in both places, and a dropdown in the frontend to disallow users from writing weird stuff 
+@api.post("/expert_classifications/")
+async def create_expert_classification(
+    observation_id: int = Form(...),
+    species: str = Form(...),
+    annotations: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    if not species or species == "":
+        raise HTTPException(status_code=422, detail="Classification is required")
+    if species not in AIClassifier.SPECIES:
+        raise HTTPException(status_code=406, detail=f"Species {species} is not a valid option")
+
+    obs = db.get(Observation, observation_id)
+    if not obs:
+        raise HTTPException(status_code=404, detail="Observation not found")
+
+    id_task = db.query(IdentificationTask).filter_by(observation_id=observation_id).first()
+
+    if id_task is None:
+        id_task = IdentificationTask(
+            observation_id=observation_id,
+            expert_classification=species,
+            annotations=annotations
+        )
+        db.add(id_task)
+    else:
+        id_task.expert_classification = species
+        id_task.annotations = annotations
+
+    db.commit()
+    db.refresh(id_task)
+
+    return {
+        "message": "Identification Task expert classification saved",
+        "expert_classification": species
+    }

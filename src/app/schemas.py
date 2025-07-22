@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 class ObservationResponse(BaseModel):
@@ -11,5 +11,4 @@ class ObservationResponse(BaseModel):
     ai_classification: str | None = None
     expert_classification: str | None = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
