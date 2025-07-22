@@ -2,9 +2,12 @@ import logging
 from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Depends, Form
 from fastapi.staticfiles import StaticFiles
 import os
-from app.utils import store_photo, PhotoSaveError
 from datetime import datetime
+from app.utils import store_photo, PhotoSaveError
 
+from sqlalchemy.orm import Session
+from app.database import SessionLocal, get_db
+from app.models import Observation
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,20 +20,21 @@ logger = logging.getLogger(__name__)
 API_NAME = "Mosquito Observation API"
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
 
-app = FastAPI(title=API_NAME, version="1.0.0")
+api = FastAPI(title=API_NAME, version="1.0.0")
 
-@app.get("/health")
+@api.get("/health")
 def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "message": f"{API_NAME} is running"}
 
 
-@app.post("/observations/")
+@api.post("/observations/")
 async def create_observation(
     latitude: float = Form(0.0),
     longitude: float = Form(0.0),
     timestamp: str = Form("2000-01-01T12:00:00"),
-    photo: UploadFile = File(...)
+    photo: UploadFile = File(...),
+    db: Session = Depends(get_db)
 ):
     # Should never happen, as photo is required, but for failsafe
     if not photo:
@@ -58,14 +62,25 @@ async def create_observation(
     except PhotoSaveError:
         raise HTTPException(status_code=500, detail="Internal error while storing photo")
 
-    print({
-        "latitude": latitude,
-        "longitude": longitude,
-        "timestamp": parsed_timestamp.isoformat(),
-        "photo_location": file_path
-    })
+    # Write to DB
+    observation = Observation(
+        latitude=latitude,
+        longitude=longitude,
+        timestamp=parsed_timestamp,
+        photo_path=file_path,
+        annotations=None,
+        ai_classification=None,
+        expert_classification=None
+    )
+    db.add(observation)
+    db.commit()
+    db.refresh(observation)
+
+    total = db.query(Observation).count()
+    print(f"Total observations in DB: {total}")
 
     return {
         "message": "Observation saved",
         "photo_location": file_path
     }
+

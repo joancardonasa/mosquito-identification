@@ -3,7 +3,7 @@ import os
 from fastapi import UploadFile
 from uuid import uuid4
 
-PHOTO_DIR = "/app/data/photos"
+PHOTO_DIR = "/app/app/data/photos"
 
 # Later on we might want to store photos in Azure Data Lake/AWS S3..., so we 
 # provide an agnostic interface that just tells us where the photo ends up`

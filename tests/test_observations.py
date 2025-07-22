@@ -1,11 +1,12 @@
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import io
-from app.main import app
+from app.main import api
 from app.utils import PhotoSaveError
+from app.database import get_db
 
-client = TestClient(app)
+client = TestClient(api)
 
 def create_mock_file(filename="test.jpg"):
     return ("photo", (filename, io.BytesIO(b"fake image"), "image/jpeg"))
@@ -59,3 +60,29 @@ class TestObservationsValidation:
             response = client.post("/observations/", data=data, files=files)
             assert response.status_code == 500
             assert response.json()["detail"] == "Internal error while storing photo"
+
+    def test_create_observation(self):
+        data = {
+            "latitude": 40.0,
+            "longitude": 2.0,
+            "timestamp": "2000-01-01T12:00:00"
+        }
+        files = [create_mock_file()]
+
+        mock_db = MagicMock()
+        mock_db.add.return_value = None
+        mock_db.commit.return_value = None
+        mock_db.refresh.return_value = None
+
+        api.dependency_overrides[get_db] = lambda: mock_db
+
+        with patch("app.main.store_photo", return_value="photro/path.jpg"):
+            response = client.post("/observations/", data=data, files=files)
+
+        assert response.status_code == 200
+        mock_db.add.assert_called_once()
+        mock_db.commit.assert_called_once()
+        json_resp = response.json()
+        assert json_resp["message"] == "Observation saved"
+
+        api.dependency_overrides.clear()
