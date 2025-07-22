@@ -23,6 +23,8 @@ Mosquito observation and identification system
 
 4. To run tests, create a virtual environment, install Poetry, install the required packages, and finally run the tests:
 
+    *(I had a lot of issues with tests while running them in Mac OS, the only way was to use pyenv and pyenv virtualenv and force the use of python3.12).*
+
     `python3 -m venv .venv`
 
     `source .venv/bin/activate` 

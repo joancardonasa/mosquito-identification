@@ -214,3 +214,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Don't save photos to the repo!
+src/app/data/photos/*
+
+# I explicitely leave the SQLite DB out of gitignore to track it.
+# If we wanted to add it to not track local DB changes, uncomment this:
+# data/db/app.db
